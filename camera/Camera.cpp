@@ -1,6 +1,6 @@
 #include <Camera.h>
 
-const auto step = glm::vec3(0, 0, -1);
+const auto forward = glm::vec3(0, 0, -1);
 const auto up = glm::vec3(0, 1, 0);
 const auto mouseSensitivity = glm::vec2(0.05f, 0.08f);
 
@@ -73,21 +73,21 @@ void Camera::updateCursor(double xpos, double ypos)
 
 void Camera::moveForward(float speed)
 {
-	auto direction = glm::conjugate(rotation) * step;
+	auto direction = glm::conjugate(rotation) * forward;
 	position += direction * speed;
 	update();
 }
 
 void Camera::moveBackward(float speed)
 {
-	auto direction = glm::conjugate(rotation) * step;
+	auto direction = glm::conjugate(rotation) * forward;
 	position -= direction * speed;
 	update();
 }
 
 void Camera::moveLeft(float speed)
 {
-	auto direction = glm::conjugate(rotation) * step;
+	auto direction = glm::conjugate(rotation) * forward;
 	direction = glm::cross(direction, up);
 	position -= direction * speed;
 	update();
@@ -95,9 +95,15 @@ void Camera::moveLeft(float speed)
 
 void Camera::moveRight(float speed)
 {
-	auto direction = glm::conjugate(rotation) * step;
+	auto direction = glm::conjugate(rotation) * forward;
 	direction = glm::cross(direction, up);
 	position += direction * speed;
+	update();
+}
+
+void Camera::moveUp(float speed)
+{
+	position += up * speed;
 	update();
 }
 

@@ -79,6 +79,44 @@ using Mesh = struct
 	std::vector<glm::vec3> colors;
 };
 
+Mesh buildPlane(float width, float length) {
+	Mesh mesh;
+
+	float height = 0;
+	float halfWidth = width * 0.5f;
+	float halfLength = length * 0.5f;
+
+	mesh.vertices = {
+		glm::vec3(-halfWidth, height, -halfLength),
+		glm::vec3(halfWidth, height, -halfLength),
+		glm::vec3(-halfWidth, height, halfLength),
+
+		glm::vec3(halfWidth, height, -halfLength),
+		glm::vec3(halfWidth, height, halfLength),
+		glm::vec3(-halfWidth, height, halfLength)
+	};
+
+	for (auto i = 0; i < mesh.vertices.size(); ++i)
+		mesh.colors.push_back(glm::vec3(1, 0, 0));
+
+	mesh.normals.resize(mesh.vertices.size());
+
+	for (auto i = 0; i < mesh.vertices.size(); i += 3)
+	{
+		auto normal = glm::triangleNormal(
+			mesh.vertices[i + 0],
+			mesh.vertices[i + 1],
+			mesh.vertices[i + 2]
+		);
+
+		mesh.normals[i + 0] = normal;
+		mesh.normals[i + 1] = normal;
+		mesh.normals[i + 2] = normal;
+	}
+
+	return mesh;
+}
+
 Mesh buildCube(float size)
 {
 	Mesh mesh;
@@ -92,47 +130,47 @@ Mesh buildCube(float size)
 		// left bottom
 		glm::vec3(-half, bottom, -half),
 		glm::vec3(-half, bottom,  half),
-		glm::vec3(-half, top, half),
+		glm::vec3(-half, -top, half),
 		// left top
 		glm::vec3(-half, bottom, -half),
-		glm::vec3(-half, top, half),
-		glm::vec3(-half, top,-half),
+		glm::vec3(-half, -top, half),
+		glm::vec3(-half, -top,-half),
 		// Face 2
 		// front bottom
 		glm::vec3(-half, bottom,  half),
 		glm::vec3(half, bottom,  half),
-		glm::vec3(-half, top, half),
+		glm::vec3(-half, -top, half),
 		// front top
 		glm::vec3(half, bottom,  half),
-		glm::vec3(half, top, half),
-		glm::vec3(-half, top, half),
+		glm::vec3(half, -top, half),
+		glm::vec3(-half, -top, half),
 		// Face 3
 		// right bottom
 		glm::vec3(half, bottom,  half),
 		glm::vec3(half, bottom, -half),
-		glm::vec3(half, top, half),
+		glm::vec3(half, -top, half),
 		// right top
 		glm::vec3(half, bottom, -half),
-		glm::vec3(half, top,-half),
-		glm::vec3(half, top, half),
+		glm::vec3(half, -top,-half),
+		glm::vec3(half, -top, half),
 		// Face 4
 		// back bottom
 		glm::vec3(half, bottom, -half),
 		glm::vec3(-half, bottom, -half),
-		glm::vec3(half, top,-half),
+		glm::vec3(half, -top, -half),
 		// back top
 		glm::vec3(-half, bottom, -half),
-		glm::vec3(-half, top,-half),
-		glm::vec3(half, top,-half),
+		glm::vec3(-half, -top, -half),
+		glm::vec3(half, -top, -half),
 		// Face 5
 		// up bottom
-		glm::vec3(half, top,-half),
-		glm::vec3(-half, top,-half),
-		glm::vec3(half, top, half),
+		glm::vec3(half, -top,-half),
+		glm::vec3(-half, -top,-half),
+		glm::vec3(half, -top, half),
 		// up top
-		glm::vec3(-half, top,-half),
-		glm::vec3(-half, top, half),
-		glm::vec3(half, top, half),
+		glm::vec3(-half, -top,-half),
+		glm::vec3(-half, -top, half),
+		glm::vec3(half, -top, half),
 		// Face 6
 		// down bottom
 		glm::vec3(-half, bottom,  half),
@@ -143,7 +181,7 @@ Mesh buildCube(float size)
 		glm::vec3(half, bottom, -half),
 		glm::vec3(half, bottom,  half)
 	};
-	
+
 	for (auto i = 0; i < mesh.vertices.size(); ++i)
 		mesh.colors.push_back(glm::vec3(1, 0, 0));
 
@@ -156,7 +194,7 @@ Mesh buildCube(float size)
 			mesh.vertices[i + 1],
 			mesh.vertices[i + 2]
 		);
-		
+
 		mesh.normals[i + 0] = normal;
 		mesh.normals[i + 1] = normal;
 		mesh.normals[i + 2] = normal;
@@ -246,7 +284,16 @@ int main(int argc, char* argv[])
 	std::uint32_t nbo;
 	std::uint32_t cbo;
 
-	Mesh mesh = buildCube(1);
+	Mesh mesh;
+	Mesh cubeSmall = buildCube(1);
+	Mesh cubeBig = buildCube(3);
+	Mesh plane = buildPlane(10, 10);
+
+	mesh = cubeSmall;
+
+	mesh.vertices.insert(mesh.vertices.end(), plane.vertices.begin(), plane.vertices.end());
+	mesh.colors.insert(mesh.colors.end(), plane.colors.begin(), plane.colors.end());
+	mesh.normals.insert(mesh.normals.end(), plane.normals.begin(), plane.normals.end());
 
 	glCreateVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -269,24 +316,23 @@ int main(int argc, char* argv[])
 	// vertex attribute
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 	// normal attribute
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, nbo);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 	// color attribute
 	glEnableVertexAttribArray(2);
 	glBindBuffer(GL_ARRAY_BUFFER, cbo);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 	// ubind
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
 	// shaders
-
 	std::uint32_t vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	std::uint32_t fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 	std::uint32_t programID = glCreateShader(GL_FRAGMENT_SHADER);
@@ -329,8 +375,6 @@ int main(int argc, char* argv[])
 
 	Camera camera(xpos, ypos);
 	Transform boxTransform;
-	boxTransform.position = glm::vec3(0, 0, 0);
-	boxTransform.updateMatrix();
 
 	camera.moveAndLookAt(glm::vec3(12, 18, 12), glm::vec3(0, 0, 0));
 
@@ -340,7 +384,7 @@ int main(int argc, char* argv[])
 
 	while (!glfwWindowShouldClose(window))
 	{
-		
+
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 		glViewport(0, 0, width, height);
@@ -354,6 +398,9 @@ int main(int argc, char* argv[])
 		glUseProgram(programID);
 		glBindVertexArray(vao);
 
+		boxTransform.position = glm::vec3(2, 0, 0);
+		boxTransform.updateMatrix();
+
 		auto model = boxTransform.getModelMatrix();
 		auto view = camera.getViewMatrix();
 		auto projection = camera.getProjection();
@@ -365,10 +412,19 @@ int main(int argc, char* argv[])
 		glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 		glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &projection[0][0]);
 
-		//glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.size());
-		glDrawArrays(GL_TRIANGLES, 0, 18);
-		glUniform3f(lightColorLocation, 1.0f, 6.0f, 1.0f);
-		glDrawArrays(GL_TRIANGLES, 18, 36);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glDrawArrays(GL_TRIANGLES, 36, 42);
+
+		boxTransform.position = glm::vec3(-2, 0, 0);
+		boxTransform.updateMatrix();
+		model = boxTransform.getModelMatrix();
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
+
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		//glDrawArrays(GL_TRIANGLES, 36, 72);
+		//glDrawArrays(GL_TRIANGLES, 0, 18);
+		//glUniform3f(lightColorLocation, -1.0f, 6.0f, -1.0f);
+		//glDrawArrays(GL_TRIANGLES, 18, 36);
 
 		glBindVertexArray(0);
 		glUseProgram(0);
@@ -397,6 +453,9 @@ int main(int argc, char* argv[])
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 			camera.moveLeft(moveSpeed);
 
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+			camera.moveUp(moveSpeed);
+
 		float zoomSpeed = 100 * dt;
 
 		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
@@ -416,5 +475,5 @@ int main(int argc, char* argv[])
 	glfwDestroyWindow(window);
 	glfwTerminate();
 
-    return 0;
-} 
+	return 0;
+}

@@ -18,6 +18,7 @@ public:
 	void moveBackward(float speed);
 	void moveLeft(float speed);
 	void moveRight(float speed);
+	void moveUp(float speed);
 
 	void zoomIn(float speed);
 	void zoomOut(float speed);
