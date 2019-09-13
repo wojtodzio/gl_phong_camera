@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
 
 	glEnable(GL_DEPTH_TEST);
 	glFrontFace(GL_CCW);
-	glDisable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
 	std::uint32_t vao;
@@ -154,11 +154,14 @@ int main(int argc, char* argv[])
 	std::uint32_t nbo;
 	std::uint32_t cbo;
 
+	Mesh debugMesh;
+	debugMesh.buildSphere(0.5f, glm::vec3(0), glm::vec3(1, 1, 1));
+
 	Mesh mesh;
 	// plane
 	mesh.buildPlane(2, 20, glm::vec3(0, 0, 0), glm::vec3(1, 1, 1)); // road
-	mesh.buildPlane(9, 20, glm::vec3(5.5, 0, 0), glm::vec3(0, 0, 0));
-	mesh.buildPlane(9, 20, glm::vec3(-5.5, 0, 0), glm::vec3(0, 0, 0));
+	mesh.buildPlane(9, 20, glm::vec3(5.5, 0, 0), glm::vec3(0, 0.5f, 0));
+	mesh.buildPlane(9, 20, glm::vec3(-5.5, 0, 0), glm::vec3(0, 0.5f, 0));
 
 	// Four store multi color building
 	mesh.buildCube(2.5, glm::vec3(4, 0, 0), glm::vec3(1, 0, 0));
@@ -181,23 +184,26 @@ int main(int argc, char* argv[])
 	mesh.buildCube(0.1, glm::vec3(-4, 7.55f, 5), glm::vec3(0.0f, 1, 1));
 	mesh.buildCube(0.1, glm::vec3(-4, 7.65f, 5), glm::vec3(0.0f, 1, 1));
 
+	// Sphere
+	mesh.buildSphere(1, glm::vec3(0, 5, 0), glm::vec3(1, 0, 0));
+
 	glCreateVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
 	// vertex buffer
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getVertices()[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getVertices()[0], GL_DYNAMIC_DRAW);
 
 	// normal buffer
 	glGenBuffers(1, &nbo);
 	glBindBuffer(GL_ARRAY_BUFFER, nbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getNormals()[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getNormals()[0], GL_DYNAMIC_DRAW);
 
 	// color buffer
 	glGenBuffers(1, &cbo);
 	glBindBuffer(GL_ARRAY_BUFFER, cbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getColors()[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getColors()[0], GL_DYNAMIC_DRAW);
 
 	// vertex attribute
 	glEnableVertexAttribArray(0);
@@ -266,7 +272,8 @@ int main(int argc, char* argv[])
 
 	auto lastFrameTime = glfwGetTime();
 
-	glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+	Transform lightTransform;
+	lightTransform.position = glm::vec3(0.0f, 5.0f, 0.0f);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -292,22 +299,42 @@ int main(int argc, char* argv[])
 		auto model = boxTransform.getModelMatrix();
 
 		glUniform3f(lightColorLocation, 1.0f, 1.0f, 1.0f);
-		glUniform3f(lightPosLocation, lightPos.x, lightPos.y, lightPos.z);
+		glUniform3f(lightPosLocation, lightTransform.position.x, lightTransform.position.y, lightTransform.position.z);
 		glUniform3f(viewPosLocation, camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
 		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
 		glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 		glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &projection[0][0]);
 
-		//for (auto i = 0; i < mesh.objectsCount(); ++i)
-		//{
-		//	glDrawArrays(GL_TRIANGLES, mesh.getObjectsIndexes()[i][0], mesh.getObjectsIndexes()[i][1]);
-		//}
+		//glDrawArrays(GL_TRIANGLES, 0, mesh.size());
 
-		glDrawArrays(GL_TRIANGLES, 0, mesh.size());
-		//glDrawArrays(GL_TRIANGLES, 36, 72);
-		//glDrawArrays(GL_TRIANGLES, 0, 18);
-		//glUniform3f(lightColorLocation, -1.0f, 6.0f, -1.0f);
-		//glDrawArrays(GL_TRIANGLES, 18, 36);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getVertices()[0], GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, nbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getNormals()[0], GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, cbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getColors()[0], GL_DYNAMIC_DRAW);
+
+		auto objectsIndexes = mesh.getObjectsIndexes();
+		int previousIndex = 0;
+		for (auto i = 0; i < objectsIndexes.size(); ++i)
+		{
+			auto currentIndex = objectsIndexes[i];
+
+			glDrawArrays(GL_TRIANGLES, previousIndex, currentIndex);
+
+			previousIndex = currentIndex;
+		}
+
+		lightTransform.updateMatrix();
+		model = lightTransform.getModelMatrix();
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * debugMesh.size(), &debugMesh.getVertices()[0], GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, nbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * debugMesh.size(), &debugMesh.getNormals()[0], GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, cbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * debugMesh.size(), &debugMesh.getColors()[0], GL_DYNAMIC_DRAW);
+		glDrawArrays(GL_TRIANGLES, 0, debugMesh.size());
 
 		glBindVertexArray(0);
 		glUseProgram(0);
@@ -346,6 +373,24 @@ int main(int argc, char* argv[])
 
 		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
 			camera.zoomOut(zoomSpeed);
+
+		if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+			lightTransform.position += glm::vec3(0, 0, -10) * (float)dt;
+
+		if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+			lightTransform.position += glm::vec3(0, 0, 10) * (float)dt;
+
+		if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+			lightTransform.position += glm::vec3(-10, 0, 0) * (float)dt;
+
+		if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+			lightTransform.position += glm::vec3(10, 0, 0) * (float)dt;
+
+		if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
+			lightTransform.position += glm::vec3(0, 10, 0) * (float)dt;
+
+		if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+			lightTransform.position += glm::vec3(0, -10, 0) * (float)dt;
 
 		glfwGetCursorPos(window, &xpos, &ypos);
 
