@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 #include <Transform.h>
 #include <Camera.h>
+#include <Mesh.h>
 
 const GLfloat ONE = 1.0f;
 
@@ -71,137 +72,6 @@ void main()
 } 
 
 )";
-
-using Mesh = struct
-{
-	std::vector<glm::vec3> vertices;
-	std::vector<glm::vec3> normals;
-	std::vector<glm::vec3> colors;
-};
-
-Mesh buildPlane(float width, float length) {
-	Mesh mesh;
-
-	float height = 0;
-	float halfWidth = width * 0.5f;
-	float halfLength = length * 0.5f;
-
-	mesh.vertices = {
-		glm::vec3(-halfWidth, height, -halfLength),
-		glm::vec3(halfWidth, height, -halfLength),
-		glm::vec3(-halfWidth, height, halfLength),
-
-		glm::vec3(halfWidth, height, -halfLength),
-		glm::vec3(halfWidth, height, halfLength),
-		glm::vec3(-halfWidth, height, halfLength)
-	};
-
-	for (auto i = 0; i < mesh.vertices.size(); ++i)
-		mesh.colors.push_back(glm::vec3(1, 0, 0));
-
-	mesh.normals.resize(mesh.vertices.size());
-
-	for (auto i = 0; i < mesh.vertices.size(); i += 3)
-	{
-		auto normal = glm::triangleNormal(
-			mesh.vertices[i + 0],
-			mesh.vertices[i + 1],
-			mesh.vertices[i + 2]
-		);
-
-		mesh.normals[i + 0] = normal;
-		mesh.normals[i + 1] = normal;
-		mesh.normals[i + 2] = normal;
-	}
-
-	return mesh;
-}
-
-Mesh buildCube(float size)
-{
-	Mesh mesh;
-
-	float half = size * 0.5f;
-	float top = size;
-	float bottom = 0;
-
-	mesh.vertices = {
-		// Face 1
-		// left bottom
-		glm::vec3(-half, bottom, -half),
-		glm::vec3(-half, bottom,  half),
-		glm::vec3(-half, -top, half),
-		// left top
-		glm::vec3(-half, bottom, -half),
-		glm::vec3(-half, -top, half),
-		glm::vec3(-half, -top,-half),
-		// Face 2
-		// front bottom
-		glm::vec3(-half, bottom,  half),
-		glm::vec3(half, bottom,  half),
-		glm::vec3(-half, -top, half),
-		// front top
-		glm::vec3(half, bottom,  half),
-		glm::vec3(half, -top, half),
-		glm::vec3(-half, -top, half),
-		// Face 3
-		// right bottom
-		glm::vec3(half, bottom,  half),
-		glm::vec3(half, bottom, -half),
-		glm::vec3(half, -top, half),
-		// right top
-		glm::vec3(half, bottom, -half),
-		glm::vec3(half, -top,-half),
-		glm::vec3(half, -top, half),
-		// Face 4
-		// back bottom
-		glm::vec3(half, bottom, -half),
-		glm::vec3(-half, bottom, -half),
-		glm::vec3(half, -top, -half),
-		// back top
-		glm::vec3(-half, bottom, -half),
-		glm::vec3(-half, -top, -half),
-		glm::vec3(half, -top, -half),
-		// Face 5
-		// up bottom
-		glm::vec3(half, -top,-half),
-		glm::vec3(-half, -top,-half),
-		glm::vec3(half, -top, half),
-		// up top
-		glm::vec3(-half, -top,-half),
-		glm::vec3(-half, -top, half),
-		glm::vec3(half, -top, half),
-		// Face 6
-		// down bottom
-		glm::vec3(-half, bottom,  half),
-		glm::vec3(-half, bottom, -half),
-		glm::vec3(half, bottom,  half),
-		// down top
-		glm::vec3(-half, bottom, -half),
-		glm::vec3(half, bottom, -half),
-		glm::vec3(half, bottom,  half)
-	};
-
-	for (auto i = 0; i < mesh.vertices.size(); ++i)
-		mesh.colors.push_back(glm::vec3(1, 0, 0));
-
-	mesh.normals.resize(mesh.vertices.size());
-
-	for (auto i = 0; i < mesh.vertices.size(); i += 3)
-	{
-		auto normal = glm::triangleNormal(
-			mesh.vertices[i + 0],
-			mesh.vertices[i + 1],
-			mesh.vertices[i + 2]
-		);
-
-		mesh.normals[i + 0] = normal;
-		mesh.normals[i + 1] = normal;
-		mesh.normals[i + 2] = normal;
-	}
-
-	return mesh;
-}
 
 void checkCompilationStatus(std::uint32_t shaderID)
 {
@@ -285,15 +155,31 @@ int main(int argc, char* argv[])
 	std::uint32_t cbo;
 
 	Mesh mesh;
-	Mesh cubeSmall = buildCube(1);
-	Mesh cubeBig = buildCube(3);
-	Mesh plane = buildPlane(10, 10);
+	// plane
+	mesh.buildPlane(2, 20, glm::vec3(0, 0, 0), glm::vec3(1, 1, 1)); // road
+	mesh.buildPlane(9, 20, glm::vec3(5.5, 0, 0), glm::vec3(0, 0, 0));
+	mesh.buildPlane(9, 20, glm::vec3(-5.5, 0, 0), glm::vec3(0, 0, 0));
 
-	mesh = cubeSmall;
+	// Four store multi color building
+	mesh.buildCube(2.5, glm::vec3(4, 0, 0), glm::vec3(1, 0, 0));
+	mesh.buildCube(2, glm::vec3(4, 2.25f, 0), glm::vec3(0, 1, 0));
+	mesh.buildCube(1.5f, glm::vec3(4, 4.25f, 0), glm::vec3(0, 0, 1));
+	mesh.buildCube(1, glm::vec3(4, 5.75f, 0), glm::vec3(0.5f, 0.5f, 0.5f));
 
-	mesh.vertices.insert(mesh.vertices.end(), plane.vertices.begin(), plane.vertices.end());
-	mesh.colors.insert(mesh.colors.end(), plane.colors.begin(), plane.colors.end());
-	mesh.normals.insert(mesh.normals.end(), plane.normals.begin(), plane.normals.end());
+	// One store red large building
+	mesh.buildCube(5, glm::vec3(-5, 0, 0), glm::vec3(1, 0, 0));
+
+	// Five store multi color building with a topping
+	mesh.buildCube(2.5, glm::vec3(-4, 0, 5), glm::vec3(1, 0, 0));
+	mesh.buildCube(2, glm::vec3(-4, 2.25f, 5), glm::vec3(0, 1, 0));
+	mesh.buildCube(1.5f, glm::vec3(-4, 4.25f, 5), glm::vec3(0, 0, 1));
+	mesh.buildCube(1, glm::vec3(-4, 5.75f, 5), glm::vec3(0.5f, 0.5f, 0.5f));
+	mesh.buildCube(0.5, glm::vec3(-4, 6.75f, 5), glm::vec3(0.5f, 0.5f, 0));
+	mesh.buildCube(0.1, glm::vec3(-4, 7.25f, 5), glm::vec3(0.0f, 1, 1));
+	mesh.buildCube(0.1, glm::vec3(-4, 7.35f, 5), glm::vec3(0.0f, 1, 1));
+	mesh.buildCube(0.1, glm::vec3(-4, 7.45f, 5), glm::vec3(0.0f, 1, 1));
+	mesh.buildCube(0.1, glm::vec3(-4, 7.55f, 5), glm::vec3(0.0f, 1, 1));
+	mesh.buildCube(0.1, glm::vec3(-4, 7.65f, 5), glm::vec3(0.0f, 1, 1));
 
 	glCreateVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -301,17 +187,17 @@ int main(int argc, char* argv[])
 	// vertex buffer
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.vertices.size(), &mesh.vertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getVertices()[0], GL_STATIC_DRAW);
 
 	// normal buffer
 	glGenBuffers(1, &nbo);
 	glBindBuffer(GL_ARRAY_BUFFER, nbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.normals.size(), &mesh.normals[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getNormals()[0], GL_STATIC_DRAW);
 
 	// color buffer
 	glGenBuffers(1, &cbo);
 	glBindBuffer(GL_ARRAY_BUFFER, cbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.colors.size(), &mesh.colors[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getColors()[0], GL_STATIC_DRAW);
 
 	// vertex attribute
 	glEnableVertexAttribArray(0);
@@ -398,12 +284,12 @@ int main(int argc, char* argv[])
 		glUseProgram(programID);
 		glBindVertexArray(vao);
 
-		boxTransform.position = glm::vec3(2, 0, 0);
+		boxTransform.position = glm::vec3(0, 0, 0);
 		boxTransform.updateMatrix();
 
-		auto model = boxTransform.getModelMatrix();
 		auto view = camera.getViewMatrix();
 		auto projection = camera.getProjection();
+		auto model = boxTransform.getModelMatrix();
 
 		glUniform3f(lightColorLocation, 1.0f, 1.0f, 1.0f);
 		glUniform3f(lightPosLocation, lightPos.x, lightPos.y, lightPos.z);
@@ -412,15 +298,12 @@ int main(int argc, char* argv[])
 		glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 		glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &projection[0][0]);
 
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		glDrawArrays(GL_TRIANGLES, 36, 42);
+		//for (auto i = 0; i < mesh.objectsCount(); ++i)
+		//{
+		//	glDrawArrays(GL_TRIANGLES, mesh.getObjectsIndexes()[i][0], mesh.getObjectsIndexes()[i][1]);
+		//}
 
-		boxTransform.position = glm::vec3(-2, 0, 0);
-		boxTransform.updateMatrix();
-		model = boxTransform.getModelMatrix();
-		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
-
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glDrawArrays(GL_TRIANGLES, 0, mesh.size());
 		//glDrawArrays(GL_TRIANGLES, 36, 72);
 		//glDrawArrays(GL_TRIANGLES, 0, 18);
 		//glUniform3f(lightColorLocation, -1.0f, 6.0f, -1.0f);
