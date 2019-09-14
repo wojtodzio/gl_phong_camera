@@ -3,7 +3,7 @@
 
 Mesh::Mesh() {}
 
-void Mesh::buildCube(float size, glm::vec3 position, glm::vec3 color) {
+void Mesh::buildCube(float size, glm::vec3 position, glm::vec3 color, float specular) {
 	float half = size * 0.5f;
 	float top = size + position.y;
 	float bottom = position.y;
@@ -88,10 +88,10 @@ void Mesh::buildCube(float size, glm::vec3 position, glm::vec3 color) {
 	}
 
 	objectsOffsets.push_back(vertices.size());
-
+	objectsSpeculars.push_back(specular);
 }
 
-void Mesh::buildPlane(float width, float length, glm::vec3 position, glm::vec3 color) {
+void Mesh::buildPlane(float width, float length, glm::vec3 position, glm::vec3 color, float specular) {
 	float height = position.y;
 	float halfWidth = width * 0.5f;
 	float halfLength = length * 0.5f;
@@ -129,9 +129,10 @@ void Mesh::buildPlane(float width, float length, glm::vec3 position, glm::vec3 c
 	}
 
 	objectsOffsets.push_back(vertices.size());
+	objectsSpeculars.push_back(specular);
 }
 
-void Mesh::buildSphere(float radius, glm::vec3 position, glm::vec3 color)
+void Mesh::buildSphere(float radius, glm::vec3 position, glm::vec3 color, float specular)
 {
 	float x, y, z, xy;                              // vertex position
 
@@ -214,4 +215,5 @@ void Mesh::buildSphere(float radius, glm::vec3 position, glm::vec3 color)
 	}
 
 	objectsOffsets.push_back(vertices.size());
+	objectsSpeculars.push_back(specular);
 }

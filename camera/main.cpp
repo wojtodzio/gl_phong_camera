@@ -47,6 +47,7 @@ in vec3 VertexColor;
 uniform vec3 lightPos; 
 uniform vec3 viewPos; 
 uniform vec3 lightColor;
+uniform float specularStrength;
 
 void main()
 {
@@ -61,7 +62,6 @@ void main()
     vec3 diffuse = diff * lightColor;
     
     // specular
-    float specularStrength = 0.5;
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);  
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
@@ -155,37 +155,37 @@ int main(int argc, char* argv[])
 	std::uint32_t cbo;
 
 	Mesh debugMesh;
-	debugMesh.buildSphere(0.5f, glm::vec3(0), glm::vec3(1, 1, 1));
+	debugMesh.buildSphere(0.5f, glm::vec3(0), glm::vec3(1, 1, 1), 0);
 
 	Mesh mesh;
 	// plane
-	mesh.buildPlane(2, 20, glm::vec3(0, 0, 0), glm::vec3(1, 1, 1)); // road
-	mesh.buildPlane(9, 20, glm::vec3(5.5, 0, 0), glm::vec3(0, 0.5f, 0));
-	mesh.buildPlane(9, 20, glm::vec3(-5.5, 0, 0), glm::vec3(0, 0.5f, 0));
+	mesh.buildPlane(2, 20, glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), 0); // road
+	mesh.buildPlane(9, 20, glm::vec3(5.5, 0, 0), glm::vec3(0, 0.5f, 0), 5.0f);
+	mesh.buildPlane(9, 20, glm::vec3(-5.5, 0, 0), glm::vec3(0, 0.5f, 0), 0);
 
 	// Four store multi color building
-	mesh.buildCube(2.5, glm::vec3(4, 0, 0), glm::vec3(1, 0, 0));
-	mesh.buildCube(2, glm::vec3(4, 2.25f, 0), glm::vec3(0, 1, 0));
-	mesh.buildCube(1.5f, glm::vec3(4, 4.25f, 0), glm::vec3(0, 0, 1));
-	mesh.buildCube(1, glm::vec3(4, 5.75f, 0), glm::vec3(0.5f, 0.5f, 0.5f));
+	mesh.buildCube(2.5, glm::vec3(4, 0, 0), glm::vec3(1, 0, 0), 0.5f);
+	mesh.buildCube(2, glm::vec3(4, 2.25f, 0), glm::vec3(0, 1, 0), 0.5f);
+	mesh.buildCube(1.5f, glm::vec3(4, 4.25f, 0), glm::vec3(0, 0, 1), 0.5f);
+	mesh.buildCube(1, glm::vec3(4, 5.75f, 0), glm::vec3(0.5f, 0.5f, 0.5f), 0.5f);
 
 	// One store red large building
-	mesh.buildCube(5, glm::vec3(-5, 0, 0), glm::vec3(1, 0, 0));
+	mesh.buildCube(5, glm::vec3(-5, 0, 0), glm::vec3(1, 0, 0), 0.5f);
 
 	// Five store multi color building with a topping
-	mesh.buildCube(2.5, glm::vec3(-4, 0, 5), glm::vec3(1, 0, 0));
-	mesh.buildCube(2, glm::vec3(-4, 2.25f, 5), glm::vec3(0, 1, 0));
-	mesh.buildCube(1.5f, glm::vec3(-4, 4.25f, 5), glm::vec3(0, 0, 1));
-	mesh.buildCube(1, glm::vec3(-4, 5.75f, 5), glm::vec3(0.5f, 0.5f, 0.5f));
-	mesh.buildCube(0.5, glm::vec3(-4, 6.75f, 5), glm::vec3(0.5f, 0.5f, 0));
-	mesh.buildCube(0.1, glm::vec3(-4, 7.25f, 5), glm::vec3(0.0f, 1, 1));
-	mesh.buildCube(0.1, glm::vec3(-4, 7.35f, 5), glm::vec3(0.0f, 1, 1));
-	mesh.buildCube(0.1, glm::vec3(-4, 7.45f, 5), glm::vec3(0.0f, 1, 1));
-	mesh.buildCube(0.1, glm::vec3(-4, 7.55f, 5), glm::vec3(0.0f, 1, 1));
-	mesh.buildCube(0.1, glm::vec3(-4, 7.65f, 5), glm::vec3(0.0f, 1, 1));
+	mesh.buildCube(2.5, glm::vec3(-4, 0, 5), glm::vec3(1, 0, 0), 0.5f);
+	mesh.buildCube(2, glm::vec3(-4, 2.25f, 5), glm::vec3(0, 1, 0), 0.5f);
+	mesh.buildCube(1.5f, glm::vec3(-4, 4.25f, 5), glm::vec3(0, 0, 1), 0.5f);
+	mesh.buildCube(1, glm::vec3(-4, 5.75f, 5), glm::vec3(0.5f, 0.5f, 0.5f), 0.5f);
+	mesh.buildCube(0.5, glm::vec3(-4, 6.75f, 5), glm::vec3(0.5f, 0.5f, 0), 0.5f);
+	mesh.buildCube(0.1, glm::vec3(-4, 7.25f, 5), glm::vec3(0.0f, 1, 1), 0.5f);
+	mesh.buildCube(0.1, glm::vec3(-4, 7.35f, 5), glm::vec3(0.0f, 1, 1), 0.5f);
+	mesh.buildCube(0.1, glm::vec3(-4, 7.45f, 5), glm::vec3(0.0f, 1, 1), 0.5f);
+	mesh.buildCube(0.1, glm::vec3(-4, 7.55f, 5), glm::vec3(0.0f, 1, 1), 0.5f);
+	mesh.buildCube(0.1, glm::vec3(-4, 7.65f, 5), glm::vec3(0.0f, 1, 1), 0.5f);
 
 	// Sphere
-	mesh.buildSphere(1, glm::vec3(0, 5, 0), glm::vec3(1, 0, 0));
+	mesh.buildSphere(1, glm::vec3(0, 5, 4), glm::vec3(1, 0, 0), 0.5f);
 
 	glCreateVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -248,8 +248,9 @@ int main(int argc, char* argv[])
 	glUseProgram(programID);
 
 	auto lightColorLocation = glGetUniformLocation(programID, "lightColor");
+	auto specularStrengthLocation = glGetUniformLocation(programID, "specularStrength");
 	auto lightPosLocation = glGetUniformLocation(programID, "lightPos");
-	auto viewPosLocation = glGetUniformLocation(programID, "viewPosLocation");
+	auto viewPosLocation = glGetUniformLocation(programID, "viewPos");
 	auto modelLocation = glGetUniformLocation(programID, "M");
 	auto viewLocation = glGetUniformLocation(programID, "V");
 	auto projectionLocation = glGetUniformLocation(programID, "P");
@@ -275,6 +276,8 @@ int main(int argc, char* argv[])
 	Transform lightTransform;
 	lightTransform.position = glm::vec3(0.0f, 5.0f, 0.0f);
 
+	float specular = 0.5f;
+
 	while (!glfwWindowShouldClose(window))
 	{
 
@@ -299,13 +302,12 @@ int main(int argc, char* argv[])
 		auto model = boxTransform.getModelMatrix();
 
 		glUniform3f(lightColorLocation, 1.0f, 1.0f, 1.0f);
+		glUniform1f(specularStrengthLocation, specular);
 		glUniform3f(lightPosLocation, lightTransform.position.x, lightTransform.position.y, lightTransform.position.z);
 		glUniform3f(viewPosLocation, camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
 		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
 		glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 		glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &projection[0][0]);
-
-		//glDrawArrays(GL_TRIANGLES, 0, mesh.size());
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getVertices()[0], GL_DYNAMIC_DRAW);
@@ -315,10 +317,13 @@ int main(int argc, char* argv[])
 		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getColors()[0], GL_DYNAMIC_DRAW);
 
 		auto objectsIndexes = mesh.getObjectsIndexes();
+		auto objectsSpeculars = mesh.getObjectsSpeculars();
 		int previousIndex = 0;
 		for (auto i = 0; i < objectsIndexes.size(); ++i)
 		{
 			auto currentIndex = objectsIndexes[i];
+
+			//glUniform1f(specularStrengthLocation, objectsSpeculars[i]);
 
 			glDrawArrays(GL_TRIANGLES, previousIndex, currentIndex);
 
@@ -391,6 +396,12 @@ int main(int argc, char* argv[])
 
 		if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
 			lightTransform.position += glm::vec3(0, -10, 0) * (float)dt;
+
+		if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+			specular -= 0.8 * (float)dt;
+
+		if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
+			specular += 0.8 * (float)dt;
 
 		glfwGetCursorPos(window, &xpos, &ypos);
 
