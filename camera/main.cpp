@@ -26,11 +26,11 @@ out vec3 VertColor;
 
 void main()
 {
-    FragPos = vec3(M * vec4(aPos, 1.0));
-    Normal = mat3(transpose(inverse(M))) * aNormal;  
+	FragPos = vec3(M * vec4(aPos, 1.0));
+	Normal = mat3(transpose(inverse(M))) * aNormal;  
 	VertColor = aColor;
     
-    gl_Position = P * V * vec4(FragPos, 1.0);
+	gl_Position = P * V * vec4(FragPos, 1.0);
 }
 )";
 
@@ -49,33 +49,46 @@ uniform vec3 viewPos;
 uniform vec3 lightColor;
 uniform float shininess;
 uniform float ambientStrength;
+uniform float specStrength;
 
-const vec3 specColor = vec3(1.0, 1.0, 1.0);
-const float lightPower = 40;
+uniform int mode;
+
+const float lightPower = 15;
 const float screenGamma = 2.2;
 
 void main()
 {
-    // ambient
     vec3 ambient = ambientStrength * lightColor;
-  	
-    // diffuse 
-    vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(lightPos - FragPos);
-	float lambertian = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = lambertian * lightColor;
+	vec3 norm = normalize(Normal);
+	vec3 lightDir = lightPos - FragPos;
+	float distance = length(lightDir);
+	distance = distance * distance;
+	lightDir = normalize(lightDir);
+	float lambertian = max(dot(lightDir, norm), 0.0);
     
-    // specular
-    vec3 viewDir = normalize(viewPos - FragPos);
-	vec3 halfDir = normalize(lightDir + viewDir);
-	float specAngle = max(dot(halfDir, norm), 0.0);
-	float spec = pow(specAngle, shininess);
-	vec3 specular = specColor * spec * lightColor; 
-    vec3 result = (ambient + diffuse + specular) * VertColor;
-    FragColor = vec4(result, 1.0);
-        //specColor * specular * lightColor * lightPower / distance
-  //float distance = length(lightDir);
-  //distance = distance * distance;
+	float specular = 0.0;
+
+	if(lambertian > 0.0) {
+		vec3 viewDir = normalize(viewPos - FragPos);
+
+		if (mode == 1) { // phong
+			vec3 reflectDir = reflect(-lightDir, norm);
+			float specAngle = max(dot(reflectDir, viewDir), 0.0);
+			specular = pow(specAngle, shininess);
+		} else if (mode == 2) { // blinn-phong
+			vec3 halfDir = normalize(lightDir + viewDir);
+			float specAngle = max(dot(halfDir, norm), 0.0);
+			specular = pow(specAngle, shininess * 4);
+		}
+	}
+
+	vec3 colorLinear = ambient +
+		lambertian * lightColor * lightPower / distance +
+		specStrength * specular * lightColor * lightPower / distance;
+
+	vec3 colorGammaCorrected = pow(colorLinear * VertColor, vec3(1.0/screenGamma));
+
+	FragColor = vec4(colorGammaCorrected, 1.0);
 } 
 )";
 
@@ -177,7 +190,7 @@ int main(int argc, char* argv[])
 
 	// One store red large building with a window
 	mesh.buildCube(5, glm::vec3(-5, 0, 0), glm::vec3(1, 0, 0), 20); // building
-	mesh.buildCube(2, glm::vec3(-3.49f, 2.5f, 0), glm::vec3(1, 1, 1), 500); // window
+	mesh.buildCube(2, glm::vec3(-3.49f, 2.5f, 0), glm::vec3(1, 1, 1), -150); // window
 
 	// Five store multi color building with a topping
 	mesh.buildCube(2.5, glm::vec3(-4, 0, 5), glm::vec3(1, 0, 0), 20);
@@ -192,7 +205,7 @@ int main(int argc, char* argv[])
 	mesh.buildCube(0.1, glm::vec3(-4, 7.65f, 5), glm::vec3(0.0f, 1, 1), 20);
 
 	// Sphere
-	mesh.buildSphere(1, glm::vec3(0, 5, 4), glm::vec3(1, 0, 0), 0.5f);
+	mesh.buildSphere(1, glm::vec3(0, 5, 4), glm::vec3(0.5, 0.5, 0.5), -100);
 
 	glCreateVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -254,6 +267,8 @@ int main(int argc, char* argv[])
 
 	glUseProgram(programID);
 
+	auto specStrengthLocation = glGetUniformLocation(programID, "specStrength");
+	auto modeLocation = glGetUniformLocation(programID, "mode");
 	auto ambientStrengthLocation = glGetUniformLocation(programID, "ambientStrength");
 	auto lightColorLocation = glGetUniformLocation(programID, "lightColor");
 	auto lightPosLocation = glGetUniformLocation(programID, "lightPos");
@@ -284,7 +299,9 @@ int main(int argc, char* argv[])
 	Transform lightTransform;
 	lightTransform.position = glm::vec3(0.0f, 5.0f, 0.0f);
 
-	float shininess = 16.0f;
+	float controlledShininess = 16.0f;
+	int mode = 1;
+	auto defaultLight = glm::vec3(1.0f, 1.0f, 1.0f);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -310,8 +327,7 @@ int main(int argc, char* argv[])
 		auto model = boxTransform.getModelMatrix();
 
 		glUniform1f(ambientStrengthLocation, 0.1f);
-		glUniform1f(shininessLocation, shininess);
-		glUniform3f(lightColorLocation, 1.0f, 1.0f, 1.0f);
+		glUniform1i(modeLocation, mode);
 		glUniform3f(lightPosLocation, lightTransform.position.x, lightTransform.position.y, lightTransform.position.z);
 		glUniform3f(viewPosLocation, camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
 		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
@@ -331,13 +347,27 @@ int main(int argc, char* argv[])
 		for (auto i = 0; i < objectsIndexes.size(); ++i)
 		{
 			auto currentIndex = objectsIndexes[i];
+			auto shininess = objectsShininess[i];
+			auto light = defaultLight;
+			float specStrength = 1.0;
 
-			glUniform1f(shininessLocation, objectsShininess[i]);
+			if (shininess == -100) shininess = controlledShininess;
+			if (shininess == -150) {
+				shininess = 500;
+				light = glm::vec3(0.25f, 0.25f, 1);
+				specStrength = 5.0;
+			}
+
+			glUniform1f(specStrengthLocation, specStrength);
+			glUniform1f(shininessLocation, shininess);
+			glUniform3f(lightColorLocation, light.x, light.y, light.z);
 
 			glDrawArrays(GL_TRIANGLES, previousIndex, currentIndex - previousIndex);
 
 			previousIndex = currentIndex;
 		}
+
+		glUniform3f(lightColorLocation, defaultLight.x, defaultLight.y, defaultLight.z);
 
 		lightTransform.updateMatrix();
 		model = lightTransform.getModelMatrix();
@@ -407,17 +437,27 @@ int main(int argc, char* argv[])
 		if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
 			lightTransform.position += glm::vec3(0, -10, 0) * (float)dt;
 
+		if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+			mode = 1;
+
+		if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+			mode = 2;
+
 		if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
 		{
-			shininess -= 20 * (float)dt;
-			if (shininess <= 1)
-				shininess = 1;
+			controlledShininess -= 50 * (float)dt;
+			if (controlledShininess <= 1)
+				controlledShininess = 1;
+
+			std::cout << "controlledShininess: " << controlledShininess << std::endl;
 		}
 		if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
 		{
-			shininess += 20 * (float)dt;
-			if (shininess >= 500)
-				shininess = 500;
+			controlledShininess += 50 * (float)dt;
+			if (controlledShininess >= 500)
+				controlledShininess = 500;
+
+			std::cout << "controlledShininess: " << controlledShininess << std::endl;
 		}
 
 		glfwGetCursorPos(window, &xpos, &ypos);
