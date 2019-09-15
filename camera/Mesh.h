@@ -18,13 +18,13 @@ public:
 	const std::vector<glm::vec3>& getNormals() const { return normals; }
 	const std::vector<glm::vec3>& getColors() const { return colors; }
 	const std::vector<int>& getObjectsIndexes() const { return objectsOffsets; }
-	const std::vector<float>& getObjectsSpeculars() const { return objectsSpeculars; }
+	const std::vector<float>& getObjectsShininess() const { return objectsShininess; }
 
 private:
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec3> normals;
 	std::vector<glm::vec3> colors;
-	std::vector<float> objectsSpeculars;
+	std::vector<float> objectsShininess;
 	std::vector<int> objectsOffsets;
 };
 

@@ -22,55 +22,61 @@ uniform mat4 P;
 
 out vec3 FragPos;
 out vec3 Normal;
-out vec3 VertexColor;
+out vec3 VertColor;
 
 void main()
 {
     FragPos = vec3(M * vec4(aPos, 1.0));
     Normal = mat3(transpose(inverse(M))) * aNormal;  
-	VertexColor = aColor;
+	VertColor = aColor;
     
     gl_Position = P * V * vec4(FragPos, 1.0);
 }
-
 )";
 
 std::string FRAGMENT_SHADER = R"(
 #version 330 core
 
+precision mediump float;
 out vec4 FragColor;
 
 in vec3 FragPos;
 in vec3 Normal;  
-in vec3 VertexColor;
+in vec3 VertColor;
   
 uniform vec3 lightPos; 
 uniform vec3 viewPos; 
 uniform vec3 lightColor;
-uniform float specularStrength;
+uniform float shininess;
+uniform float ambientStrength;
+
+const vec3 specColor = vec3(1.0, 1.0, 1.0);
+const float lightPower = 40;
+const float screenGamma = 2.2;
 
 void main()
 {
     // ambient
-    float ambientStrength = 0.1;
     vec3 ambient = ambientStrength * lightColor;
   	
     // diffuse 
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(lightPos - FragPos);
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * lightColor;
+	float lambertian = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = lambertian * lightColor;
     
     // specular
     vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 reflectDir = reflect(-lightDir, norm);  
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = specularStrength * spec * lightColor;  
-        
-    vec3 result = (ambient + diffuse + specular) * VertexColor;
+	vec3 halfDir = normalize(lightDir + viewDir);
+	float specAngle = max(dot(halfDir, norm), 0.0);
+	float spec = pow(specAngle, shininess);
+	vec3 specular = specColor * spec * lightColor; 
+    vec3 result = (ambient + diffuse + specular) * VertColor;
     FragColor = vec4(result, 1.0);
+        //specColor * specular * lightColor * lightPower / distance
+  //float distance = length(lightDir);
+  //distance = distance * distance;
 } 
-
 )";
 
 void checkCompilationStatus(std::uint32_t shaderID)
@@ -155,34 +161,35 @@ int main(int argc, char* argv[])
 	std::uint32_t cbo;
 
 	Mesh debugMesh;
-	debugMesh.buildSphere(0.5f, glm::vec3(0), glm::vec3(1, 1, 1), 0);
+	debugMesh.buildSphere(0.25f, glm::vec3(0), glm::vec3(1, 1, 1), 0);
 
 	Mesh mesh;
 	// plane
-	mesh.buildPlane(2, 20, glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), 0); // road
-	mesh.buildPlane(9, 20, glm::vec3(5.5, 0, 0), glm::vec3(0, 0.5f, 0), 5.0f);
-	mesh.buildPlane(9, 20, glm::vec3(-5.5, 0, 0), glm::vec3(0, 0.5f, 0), 0);
+	mesh.buildPlane(2, 20, glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), 1); // road
+	mesh.buildPlane(9, 20, glm::vec3(5.5, 0, 0), glm::vec3(0, 0.5f, 0), 1);
+	mesh.buildPlane(9, 20, glm::vec3(-5.5, 0, 0), glm::vec3(0, 0.5f, 0), 1);
 
 	// Four store multi color building
-	mesh.buildCube(2.5, glm::vec3(4, 0, 0), glm::vec3(1, 0, 0), 0.5f);
-	mesh.buildCube(2, glm::vec3(4, 2.25f, 0), glm::vec3(0, 1, 0), 0.5f);
-	mesh.buildCube(1.5f, glm::vec3(4, 4.25f, 0), glm::vec3(0, 0, 1), 0.5f);
-	mesh.buildCube(1, glm::vec3(4, 5.75f, 0), glm::vec3(0.5f, 0.5f, 0.5f), 0.5f);
+	mesh.buildCube(2.5, glm::vec3(4, 0, 0), glm::vec3(1, 0, 0), 20);
+	mesh.buildCube(2, glm::vec3(4, 2.25f, 0), glm::vec3(0, 1, 0), 20);
+	mesh.buildCube(1.5f, glm::vec3(4, 4.25f, 0), glm::vec3(0, 0, 1), 20);
+	mesh.buildCube(1, glm::vec3(4, 5.75f, 0), glm::vec3(0.5f, 0.5f, 0.5f), 20);
 
-	// One store red large building
-	mesh.buildCube(5, glm::vec3(-5, 0, 0), glm::vec3(1, 0, 0), 0.5f);
+	// One store red large building with a window
+	mesh.buildCube(5, glm::vec3(-5, 0, 0), glm::vec3(1, 0, 0), 20); // building
+	mesh.buildCube(2, glm::vec3(-3.49f, 2.5f, 0), glm::vec3(1, 1, 1), 500); // window
 
 	// Five store multi color building with a topping
-	mesh.buildCube(2.5, glm::vec3(-4, 0, 5), glm::vec3(1, 0, 0), 0.5f);
-	mesh.buildCube(2, glm::vec3(-4, 2.25f, 5), glm::vec3(0, 1, 0), 0.5f);
-	mesh.buildCube(1.5f, glm::vec3(-4, 4.25f, 5), glm::vec3(0, 0, 1), 0.5f);
-	mesh.buildCube(1, glm::vec3(-4, 5.75f, 5), glm::vec3(0.5f, 0.5f, 0.5f), 0.5f);
-	mesh.buildCube(0.5, glm::vec3(-4, 6.75f, 5), glm::vec3(0.5f, 0.5f, 0), 0.5f);
-	mesh.buildCube(0.1, glm::vec3(-4, 7.25f, 5), glm::vec3(0.0f, 1, 1), 0.5f);
-	mesh.buildCube(0.1, glm::vec3(-4, 7.35f, 5), glm::vec3(0.0f, 1, 1), 0.5f);
-	mesh.buildCube(0.1, glm::vec3(-4, 7.45f, 5), glm::vec3(0.0f, 1, 1), 0.5f);
-	mesh.buildCube(0.1, glm::vec3(-4, 7.55f, 5), glm::vec3(0.0f, 1, 1), 0.5f);
-	mesh.buildCube(0.1, glm::vec3(-4, 7.65f, 5), glm::vec3(0.0f, 1, 1), 0.5f);
+	mesh.buildCube(2.5, glm::vec3(-4, 0, 5), glm::vec3(1, 0, 0), 20);
+	mesh.buildCube(2, glm::vec3(-4, 2.25f, 5), glm::vec3(0, 1, 0), 20);
+	mesh.buildCube(1.5f, glm::vec3(-4, 4.25f, 5), glm::vec3(0, 0, 1), 20);
+	mesh.buildCube(1, glm::vec3(-4, 5.75f, 5), glm::vec3(0.5f, 0.5f, 0.5f), 20);
+	mesh.buildCube(0.5, glm::vec3(-4, 6.75f, 5), glm::vec3(0.5f, 0.5f, 0), 20);
+	mesh.buildCube(0.1, glm::vec3(-4, 7.25f, 5), glm::vec3(0.0f, 1, 1), 20);
+	mesh.buildCube(0.1, glm::vec3(-4, 7.35f, 5), glm::vec3(0.0f, 1, 1), 20);
+	mesh.buildCube(0.1, glm::vec3(-4, 7.45f, 5), glm::vec3(0.0f, 1, 1), 20);
+	mesh.buildCube(0.1, glm::vec3(-4, 7.55f, 5), glm::vec3(0.0f, 1, 1), 20);
+	mesh.buildCube(0.1, glm::vec3(-4, 7.65f, 5), glm::vec3(0.0f, 1, 1), 20);
 
 	// Sphere
 	mesh.buildSphere(1, glm::vec3(0, 5, 4), glm::vec3(1, 0, 0), 0.5f);
@@ -247,13 +254,14 @@ int main(int argc, char* argv[])
 
 	glUseProgram(programID);
 
+	auto ambientStrengthLocation = glGetUniformLocation(programID, "ambientStrength");
 	auto lightColorLocation = glGetUniformLocation(programID, "lightColor");
-	auto specularStrengthLocation = glGetUniformLocation(programID, "specularStrength");
 	auto lightPosLocation = glGetUniformLocation(programID, "lightPos");
 	auto viewPosLocation = glGetUniformLocation(programID, "viewPos");
 	auto modelLocation = glGetUniformLocation(programID, "M");
 	auto viewLocation = glGetUniformLocation(programID, "V");
 	auto projectionLocation = glGetUniformLocation(programID, "P");
+	auto shininessLocation = glGetUniformLocation(programID, "shininess");
 
 	// mark for deletion
 	glDetachShader(programID, vertexShaderID);
@@ -276,7 +284,7 @@ int main(int argc, char* argv[])
 	Transform lightTransform;
 	lightTransform.position = glm::vec3(0.0f, 5.0f, 0.0f);
 
-	float specular = 0.5f;
+	float shininess = 16.0f;
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -301,8 +309,9 @@ int main(int argc, char* argv[])
 		auto projection = camera.getProjection();
 		auto model = boxTransform.getModelMatrix();
 
+		glUniform1f(ambientStrengthLocation, 0.1f);
+		glUniform1f(shininessLocation, shininess);
 		glUniform3f(lightColorLocation, 1.0f, 1.0f, 1.0f);
-		glUniform1f(specularStrengthLocation, specular);
 		glUniform3f(lightPosLocation, lightTransform.position.x, lightTransform.position.y, lightTransform.position.z);
 		glUniform3f(viewPosLocation, camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
 		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
@@ -317,15 +326,15 @@ int main(int argc, char* argv[])
 		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.size(), &mesh.getColors()[0], GL_DYNAMIC_DRAW);
 
 		auto objectsIndexes = mesh.getObjectsIndexes();
-		auto objectsSpeculars = mesh.getObjectsSpeculars();
+		auto objectsShininess = mesh.getObjectsShininess();
 		int previousIndex = 0;
 		for (auto i = 0; i < objectsIndexes.size(); ++i)
 		{
 			auto currentIndex = objectsIndexes[i];
 
-			//glUniform1f(specularStrengthLocation, objectsSpeculars[i]);
+			glUniform1f(shininessLocation, objectsShininess[i]);
 
-			glDrawArrays(GL_TRIANGLES, previousIndex, currentIndex);
+			glDrawArrays(GL_TRIANGLES, previousIndex, currentIndex - previousIndex);
 
 			previousIndex = currentIndex;
 		}
@@ -339,6 +348,7 @@ int main(int argc, char* argv[])
 		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * debugMesh.size(), &debugMesh.getNormals()[0], GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, cbo);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * debugMesh.size(), &debugMesh.getColors()[0], GL_DYNAMIC_DRAW);
+		glUniform1f(ambientStrengthLocation, 1.0f);
 		glDrawArrays(GL_TRIANGLES, 0, debugMesh.size());
 
 		glBindVertexArray(0);
@@ -397,11 +407,18 @@ int main(int argc, char* argv[])
 		if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
 			lightTransform.position += glm::vec3(0, -10, 0) * (float)dt;
 
-		if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
-			specular -= 0.8 * (float)dt;
-
-		if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
-			specular += 0.8 * (float)dt;
+		if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
+		{
+			shininess -= 20 * (float)dt;
+			if (shininess <= 1)
+				shininess = 1;
+		}
+		if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
+		{
+			shininess += 20 * (float)dt;
+			if (shininess >= 500)
+				shininess = 500;
+		}
 
 		glfwGetCursorPos(window, &xpos, &ypos);
 
