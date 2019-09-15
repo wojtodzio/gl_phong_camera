@@ -50,6 +50,7 @@ uniform vec3 lightColor;
 uniform float shininess;
 uniform float ambientStrength;
 uniform float specStrength;
+uniform float diffuseStrength;
 
 uniform int mode;
 
@@ -83,7 +84,7 @@ void main()
 	}
 
 	vec3 colorLinear = ambient +
-		lambertian * lightColor * lightPower / distance +
+		diffuseStrength * lambertian * lightColor * lightPower / distance +
 		specStrength * specular * lightColor * lightPower / distance;
 
 	vec3 colorGammaCorrected = pow(colorLinear * VertColor, vec3(1.0/screenGamma));
@@ -267,6 +268,7 @@ int main(int argc, char* argv[])
 
 	glUseProgram(programID);
 
+	auto diffuseStrengthLocation = glGetUniformLocation(programID, "diffuseStrength");
 	auto specStrengthLocation = glGetUniformLocation(programID, "specStrength");
 	auto modeLocation = glGetUniformLocation(programID, "mode");
 	auto ambientStrengthLocation = glGetUniformLocation(programID, "ambientStrength");
@@ -302,6 +304,8 @@ int main(int argc, char* argv[])
 	float controlledShininess = 16.0f;
 	int mode = 1;
 	auto defaultLight = glm::vec3(1.0f, 1.0f, 1.0f);
+	float ambientStrength = 0.1f;
+	float diffuseStrength = 1.0f;
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -326,7 +330,8 @@ int main(int argc, char* argv[])
 		auto projection = camera.getProjection();
 		auto model = boxTransform.getModelMatrix();
 
-		glUniform1f(ambientStrengthLocation, 0.1f);
+		glUniform1f(ambientStrengthLocation, ambientStrength);
+		glUniform1f(diffuseStrengthLocation, diffuseStrength);
 		glUniform1i(modeLocation, mode);
 		glUniform3f(lightPosLocation, lightTransform.position.x, lightTransform.position.y, lightTransform.position.z);
 		glUniform3f(viewPosLocation, camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
@@ -446,18 +451,55 @@ int main(int argc, char* argv[])
 		if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
 		{
 			controlledShininess -= 50 * (float)dt;
-			if (controlledShininess <= 1)
+			if (controlledShininess < 1)
 				controlledShininess = 1;
 
 			std::cout << "controlledShininess: " << controlledShininess << std::endl;
 		}
+
 		if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
 		{
 			controlledShininess += 50 * (float)dt;
-			if (controlledShininess >= 500)
+			if (controlledShininess > 500)
 				controlledShininess = 500;
 
 			std::cout << "controlledShininess: " << controlledShininess << std::endl;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+		{
+			diffuseStrength -= (float)dt;
+			if (diffuseStrength < 0)
+				diffuseStrength = 0;
+
+			std::cout << "diffuseStrength: " << diffuseStrength << std::endl;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
+		{
+			diffuseStrength += (float)dt;
+			if (diffuseStrength > 1)
+				diffuseStrength = 1;
+
+			std::cout << "diffuseStrength: " << diffuseStrength << std::endl;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
+		{
+			ambientStrength -= (float)dt;
+			if (ambientStrength < 0)
+				ambientStrength = 0;
+
+			std::cout << "ambientStrength: " << ambientStrength << std::endl;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS)
+		{
+			ambientStrength += (float)dt;
+			if (ambientStrength > 1)
+				ambientStrength = 1;
+
+			std::cout << "ambientStrength: " << ambientStrength << std::endl;
 		}
 
 		glfwGetCursorPos(window, &xpos, &ypos);
