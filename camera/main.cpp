@@ -87,7 +87,9 @@ void main()
 		diffuseStrength * lambertian * lightColor * lightPower / distance +
 		specStrength * specular * lightColor * lightPower / distance;
 
-	vec3 colorGammaCorrected = pow(colorLinear * VertColor, vec3(1.0/screenGamma));
+	vec3 color = colorLinear * VertColor;
+
+	vec3 colorGammaCorrected = pow(color, vec3(1.0/screenGamma));
 
 	FragColor = vec4(colorGammaCorrected, 1.0);
 } 
@@ -478,8 +480,8 @@ int main(int argc, char* argv[])
 		if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
 		{
 			diffuseStrength += (float)dt;
-			if (diffuseStrength > 1)
-				diffuseStrength = 1;
+			if (diffuseStrength > 10)
+				diffuseStrength = 10;
 
 			std::cout << "diffuseStrength: " << diffuseStrength << std::endl;
 		}
